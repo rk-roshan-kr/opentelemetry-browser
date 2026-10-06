@@ -251,6 +251,9 @@ export function quickStartBrowserSdk(config: QuickStartConfig) {
   // Add console processors if the user wants to debug
   if (config.logLevel === 'DEBUG') {
     sdkConfig.logs = {
+      exportConfig: {
+        headers: config.exportHeaders,
+      },
       processors: [
         new SimpleLogRecordProcessor({
           exporter: new ConsoleLogRecordExporter(),
@@ -258,6 +261,9 @@ export function quickStartBrowserSdk(config: QuickStartConfig) {
       ],
     };
     sdkConfig.traces = {
+      exportConfig: {
+        headers: config.exportHeaders,
+      },
       processors: [
         new SimpleSpanProcessor({ exporter: new ConsoleSpanExporter() }),
       ],
