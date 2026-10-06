@@ -1014,5 +1014,47 @@ describe('XhrInstrumentation', () => {
         });
       });
     });
+
+    describe('with requestHook configuration', () => {
+      afterEach(() => {
+        instrumentation.setConfig({ requestHook: undefined });
+      });
+
+      it('should invoke requestHook and allow setting span attributes', async () => {
+        instrumentation.setConfig({
+          requestHook: (span, _xhr) => {
+            span.setAttribute('custom.xhr.attribute', 'test-value');
+          },
+        });
+        const url = getUrlForPath('/api/get');
+        await doXhrRequest({ method: 'GET', url });
+        const span = await waitForSpan(url);
+        expect(span.attributes['custom.xhr.attribute']).toBe('test-value');
+      });
+
+      it('should catch errors thrown by requestHook without failing the request', async () => {
+        const diagSpy = vi
+          .spyOn(
+            (
+              instrumentation as unknown as {
+                _diag: { error: (...args: unknown[]) => void };
+              }
+            )._diag,
+            'error',
+          )
+          .mockImplementation(() => {});
+        instrumentation.setConfig({
+          requestHook: () => {
+            throw new Error('requestHook boom');
+          },
+        });
+        const url = getUrlForPath('/api/get');
+        await doXhrRequest({ method: 'GET', url });
+        const span = await waitForSpan(url);
+        expect(span).toBeDefined();
+        expect(diagSpy).toHaveBeenCalled();
+        diagSpy.mockRestore();
+      });
+    });
   });
 });
