@@ -11,6 +11,9 @@ import {
   safeExecuteInTheMiddle,
 } from '@opentelemetry/instrumentation';
 import {
+  ATTR_CODE_COLUMN_NUMBER,
+  ATTR_CODE_FILE_PATH,
+  ATTR_CODE_LINE_NUMBER,
   ATTR_EXCEPTION_MESSAGE,
   ATTR_EXCEPTION_STACKTRACE,
   ATTR_EXCEPTION_TYPE,
@@ -115,6 +118,53 @@ export class ErrorsInstrumentation extends InstrumentationBase<ErrorsInstrumenta
             [ATTR_EXCEPTION_MESSAGE]: capturedError.message,
             [ATTR_EXCEPTION_STACKTRACE]: capturedError.stack,
           };
+        }
+
+        if (!isRejection) {
+          const errorEvent = event as ErrorEvent;
+          if (
+            typeof errorEvent.filename === 'string' &&
+            errorEvent.filename.length > 0
+          ) {
+            errorAttributes[ATTR_CODE_FILE_PATH] = errorEvent.filename;
+          }
+          if (typeof errorEvent.lineno === 'number' && errorEvent.lineno > 0) {
+            errorAttributes[ATTR_CODE_LINE_NUMBER] = errorEvent.lineno;
+          }
+          if (typeof errorEvent.colno === 'number' && errorEvent.colno > 0) {
+            errorAttributes[ATTR_CODE_COLUMN_NUMBER] = errorEvent.colno;
+          }
+        }
+
+        if (typeof capturedError !== 'string') {
+          const errWithCodeProps = capturedError as {
+            fileName?: unknown;
+            lineNumber?: unknown;
+            columnNumber?: unknown;
+          };
+          if (
+            !errorAttributes[ATTR_CODE_FILE_PATH] &&
+            typeof errWithCodeProps.fileName === 'string' &&
+            errWithCodeProps.fileName.length > 0
+          ) {
+            errorAttributes[ATTR_CODE_FILE_PATH] = errWithCodeProps.fileName;
+          }
+          if (
+            !errorAttributes[ATTR_CODE_LINE_NUMBER] &&
+            typeof errWithCodeProps.lineNumber === 'number' &&
+            errWithCodeProps.lineNumber > 0
+          ) {
+            errorAttributes[ATTR_CODE_LINE_NUMBER] =
+              errWithCodeProps.lineNumber;
+          }
+          if (
+            !errorAttributes[ATTR_CODE_COLUMN_NUMBER] &&
+            typeof errWithCodeProps.columnNumber === 'number' &&
+            errWithCodeProps.columnNumber > 0
+          ) {
+            errorAttributes[ATTR_CODE_COLUMN_NUMBER] =
+              errWithCodeProps.columnNumber;
+          }
         }
 
         const customAttributes = this._applyCustomAttributes(capturedError);

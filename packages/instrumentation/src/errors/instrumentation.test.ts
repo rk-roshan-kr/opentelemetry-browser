@@ -5,6 +5,9 @@
 
 import type { InMemoryLogRecordExporter } from '@opentelemetry/sdk-logs';
 import {
+  ATTR_CODE_COLUMN_NUMBER,
+  ATTR_CODE_FILE_PATH,
+  ATTR_CODE_LINE_NUMBER,
   ATTR_EXCEPTION_MESSAGE,
   ATTR_EXCEPTION_STACKTRACE,
   ATTR_EXCEPTION_TYPE,
@@ -36,13 +39,26 @@ class ValidationError extends Error {
 // We dispatch a cancelable plain Event (the instrumentation reads
 // `event.error`, falling back to `event.message`) and call preventDefault from
 // a capture-phase listener to suppress the default reporting behavior.
-const dispatchErrorEvent = (error?: Error | string, message?: string) => {
+const dispatchErrorEvent = (
+  error?: Error | string,
+  message?: string,
+  extra?: { filename?: string; lineno?: number; colno?: number },
+) => {
   const event = new Event('error', { cancelable: true });
   if (error !== undefined) {
     Object.defineProperty(event, 'error', { value: error });
   }
   if (message !== undefined) {
     Object.defineProperty(event, 'message', { value: message });
+  }
+  if (extra?.filename !== undefined) {
+    Object.defineProperty(event, 'filename', { value: extra.filename });
+  }
+  if (extra?.lineno !== undefined) {
+    Object.defineProperty(event, 'lineno', { value: extra.lineno });
+  }
+  if (extra?.colno !== undefined) {
+    Object.defineProperty(event, 'colno', { value: extra.colno });
   }
   const suppress = (e: Event) => e.preventDefault();
   window.addEventListener('error', suppress, { capture: true });
@@ -236,6 +252,57 @@ describe('ErrorsInstrumentation', () => {
       expect(logs).toHaveLength(1);
       expect(logs[0]?.attributes[ATTR_EXCEPTION_MESSAGE]).toBe('Real error');
       expect(logs[0]?.attributes[ATTR_EXCEPTION_TYPE]).toBe('ValidationError');
+    });
+
+    it('should set code attributes from ErrorEvent when present', () => {
+      dispatchErrorEvent(new Error('Sample error'), undefined, {
+        filename: 'https://example.com/app.js',
+        lineno: 42,
+        colno: 15,
+      });
+
+      const logs = getErrorLogs();
+      expect(logs).toHaveLength(1);
+      expect(logs[0]?.attributes[ATTR_CODE_FILE_PATH]).toBe(
+        'https://example.com/app.js',
+      );
+      expect(logs[0]?.attributes[ATTR_CODE_LINE_NUMBER]).toBe(42);
+      expect(logs[0]?.attributes[ATTR_CODE_COLUMN_NUMBER]).toBe(15);
+    });
+
+    it('should set code attributes from Error object properties when present', () => {
+      const errorWithCode = new Error('Firefox error');
+      (
+        errorWithCode as unknown as {
+          fileName: string;
+          lineNumber: number;
+          columnNumber: number;
+        }
+      ).fileName = 'https://example.com/bundle.js';
+      (
+        errorWithCode as unknown as {
+          fileName: string;
+          lineNumber: number;
+          columnNumber: number;
+        }
+      ).lineNumber = 100;
+      (
+        errorWithCode as unknown as {
+          fileName: string;
+          lineNumber: number;
+          columnNumber: number;
+        }
+      ).columnNumber = 25;
+
+      dispatchErrorEvent(errorWithCode);
+
+      const logs = getErrorLogs();
+      expect(logs).toHaveLength(1);
+      expect(logs[0]?.attributes[ATTR_CODE_FILE_PATH]).toBe(
+        'https://example.com/bundle.js',
+      );
+      expect(logs[0]?.attributes[ATTR_CODE_LINE_NUMBER]).toBe(100);
+      expect(logs[0]?.attributes[ATTR_CODE_COLUMN_NUMBER]).toBe(25);
     });
   });
 

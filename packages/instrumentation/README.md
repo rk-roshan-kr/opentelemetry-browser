@@ -300,6 +300,9 @@ Each `exception` event includes:
 | `exception.type` | The error's `name` (omitted when the thrown value is a string). |
 | `exception.message` | The error's `message`, or the thrown string itself. |
 | `exception.stacktrace` | The error's `stack` (omitted when the thrown value is a string). |
+| `code.file.path` | The script URL or file path where the error occurred (when available). |
+| `code.line.number` | The line number where the error occurred (when available). |
+| `code.column.number` | The column number where the error occurred (when available). |
 
 ---
 
