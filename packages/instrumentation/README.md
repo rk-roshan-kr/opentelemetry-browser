@@ -389,9 +389,29 @@ Each `fetch` Span includes:
 | `url.full` | Absolute URL describing a network resource according to RFC3986 (sanitized if passing `sanitizeUrl` config option). |
 | `server.address` | The hostmane of the request's URL. |
 | `server.port` | The port of the request's URL. |
-| `http.response.status_code` | HTTP response status code. |
 | `error.type` | If request failed. Describes a class of error the operation ended with. |
 
+---
+
+### Network Information
+
+```typescript
+import { NetworkInstrumentation } from '@opentelemetry/browser-instrumentation/experimental/network';
+```
+
+Provides instrumentation for the [Network Information API](https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation) (`navigator.connection`). Emits an initial `browser.network` event on startup and re-emits whenever connection quality changes. Gracefully no-ops in browsers without `navigator.connection` support.
+
+#### Captured Attributes
+
+Each `browser.network` event includes:
+
+| Attribute | Type | Description |
+|---|---|---|
+| `browser.network.effective_type` | string | Effective connection type (`slow-2g`, `2g`, `3g`, `4g`). |
+| `browser.network.downlink` | number | Estimated downlink bandwidth in Mbps. |
+| `browser.network.rtt` | number | Estimated round-trip time in milliseconds. |
+| `browser.network.save_data` | boolean | User data saver preference. |
+| `browser.network.type` | string | Underlying connection type (`wifi`, `cellular`, `ethernet`, etc.). |
 
 ## Useful links
 
