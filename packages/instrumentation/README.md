@@ -223,6 +223,8 @@ Data attributes with the prefix `data-otel-` on the target element will be added
 </button>
 ```
 
+> **Note**: This event-based instrumentation supersedes the legacy span-based `instrumentation-user-interaction` package in `opentelemetry-js-contrib`. The browser SDK uses a zoneless architecture ([#210](https://github.com/open-telemetry/opentelemetry-browser/issues/210)); emitting discrete `browser.user_action.*` log events eliminates Zone.js dependency overhead while providing clearer user interaction signals.
+
 ---
 
 ### Web Vitals
